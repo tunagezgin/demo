@@ -1,0 +1,30 @@
+version: 0.2
+
+phases:
+  install:
+    runtime-versions:
+      nodejs: 18
+    commands:
+      - echo "Node.js kuruluyor"
+      - npm install
+  pre_build:
+    commands:
+      - echo "Testler çalıştırılıyor"
+      - npm test
+  build:
+    commands:
+      - echo "Build oluşturuluyor"
+      - npm run build
+  post_build:
+    commands:
+      - echo "Deploy adımı başlıyor"
+      # EC2'ye SSH ile bağlanıp deploy
+      - echo "$EC2_SSH_KEY" > Tuna-EC2-Key.pem
+      - chmod 400 Tuna-EC2-Key.pem
+      - scp -o ProxyCommand="ssh -i Tuna-EC2-Key.pem -W %h:%p ec2-user@ec2-44-199-226-63.compute-1.amazonaws.com" -i Tuna-EC2-Key.pem -r ./build ec2-user@10.0.142.229:/home/ec2-user/app
+      - ssh -o ProxyCommand="ssh -i Tuna-EC2-Key.pem -W %h:%p ec2-user@ec2-44-199-226-63.compute-1.amazonaws.com" -i Tuna-EC2-Key.pem ec2-user@10.0.142.229 'cd /home/ec2-user/app && npm install && pm2 restart app || pm2 start app'
+
+artifacts:
+  files:
+    - '**/*'
+  discard-paths: yes
